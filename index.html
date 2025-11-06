@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cadastro de Endereço - Busca Automática de CEP</title>
+  <style>
+    body {
+      font-family: "Poppins", sans-serif;
+      background: linear-gradient(120deg, #0a0a3a, #1a1a6b);
+      color: #fff;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .container {
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(10px);
+      padding: 30px 40px;
+      border-radius: 15px;
+      box-shadow: 0 4px 20px rgba(255,255,255,0.1);
+      width: 100%;
+      max-width: 480px;
+      position: relative;
+    }
+
+    h1 {
+      text-align: center;
+      color: #ffcc00;
+      margin-bottom: 25px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: bold;
+      font-size: 0.95rem;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 18px;
+      border: none;
+      border-radius: 8px;
+      outline: none;
+      font-size: 1rem;
+    }
+
+    input:disabled {
+      background: rgba(255, 255, 255, 0.3);
+      color: #ccc;
+    }
+
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      background: #ffcc00;
+      color: #000;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.3s;
+      font-size: 1rem;
+    }
+
+    .btn:hover {
+      background: #e6b800;
+    }
+
+    #status {
+      text-align: center;
+      margin-top: 15px;
+      color: #ffcc00;
+      font-size: 0.9rem;
+    }
+
+    /* Botão do menu */
+    #menuBtn {
+      position: absolute;
+      top: 20px;
+      right: -130px;
+      background: #ffcc00;
+      color: #000;
+      font-weight: bold;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 8px 0 0 8px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    #menuBtn:hover {
+      background: #e6b800;
+    }
+
+    /* Menu lateral */
+    .menu {
+      position: fixed;
+      top: 0;
+      right: -320px;
+      width: 320px;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.9);
+      color: #fff;
+      padding: 20px;
+      box-shadow: -4px 0 20px rgba(255,255,255,0.1);
+      transition: right 0.3s;
+      overflow-y: auto;
+    }
+
+    .menu.open {
+      right: 0;
+    }
+
+    .menu h2 {
+      color: #ffcc00;
+      text-align: center;
+      margin-bottom: 15px;
+    }
+
+    .cadastro-item {
+      border-bottom: 1px solid rgba(255,255,255,0.2);
+      padding: 10px 0;
+      font-size: 0.9rem;
+    }
+
+    .cadastro-item img {
+      width: 100%;
+      max-height: 150px;
+      object-fit: cover;
+      border-radius: 8px;
+      margin-top: 8px;
+    }
+
+    .cadastro-item strong {
+      color: #ffcc00;
+    }
+
+    /* Botão Limpar */
+    #limparBtn {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      margin-top: 15px;
+      background: #ff4444;
+      color: #fff;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      text-align: center;
+      transition: 0.3s;
+    }
+
+    #limparBtn:hover {
+      background: #cc0000;
+    }
+    .width-50{
+        width: 50px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <button id="menuBtn">Cadastros</button>
+    <h1>Cadastro de Usuário</h1>
+
+    <form id="formEndereco">
+      <label for="nome">Nome Usuário</label>
+      <input type="text" id="nome" placeholder="Digite seu nome" required>
+
+      <label for="imagem">Foto Usuário</label>
+      <input type="file" id="imagem" accept="image/*" required>
+
+      <label for="cep">CEP</label>
+      <input type="text" id="cep" maxlength="9" placeholder="Digite o CEP" required>
+
+      <label for="numero">Número da Residência</label>
+      <input type="text" id="numero" placeholder="Número da residência" required>
+
+      <label for="rua">Rua</label>
+      <input type="text" id="rua" placeholder="Rua" disabled>
+
+      <label for="bairro">Bairro</label>
+      <input type="text" id="bairro" placeholder="Bairro" disabled>
+
+      <label for="cidade">Cidade</label>
+      <input type="text" id="cidade" placeholder="Cidade" disabled>
+
+      <label for="estado">Estado (UF)</label>
+      <input type="text" id="estado" placeholder="Estado" disabled>
+
+      <button type="submit" class="btn">Cadastrar Usuário</button>
+      <p id="status"></p>
+    </form>
+  </div>
+
+  <!-- Menu lateral -->
+  <div id="menuCadastros" class="menu">
+    <h2>Cadastros</h2>
+    <div id="listaCadastros"></div>
+    <button id="limparBtn">Limpar Cadastros</button>
+  </div>
+
+  <script>
+    const cepInput = document.getElementById("cep");
+    const ruaInput = document.getElementById("rua");
+    const bairroInput = document.getElementById("bairro");
+    const cidadeInput = document.getElementById("cidade");
+    const estadoInput = document.getElementById("estado");
+    const numeroInput = document.getElementById("numero");
+    const nomeInput = document.getElementById("nome");
+    const imagemInput = document.getElementById("imagem");
+    const statusMsg = document.getElementById("status");
+    const form = document.getElementById("formEndereco");
+    const menuBtn = document.getElementById("menuBtn");
+    const menuCadastros = document.getElementById("menuCadastros");
+    const listaCadastros = document.getElementById("listaCadastros");
+    const limparBtn = document.getElementById("limparBtn");
+
+    // Função para limpar campos de endereço
+    function limparEndereco() {
+      ruaInput.value = "";
+      bairroInput.value = "";
+      cidadeInput.value = "";
+      estadoInput.value = "";
+    }
+
+    // Função para buscar CEP
+    async function buscarCEP(cep) {
+      const cepLimpo = cep.replace(/\D/g, "");
+      if (cepLimpo.length !== 8) {
+        limparEndereco();
+        if (cepLimpo.length > 0) {
+          statusMsg.textContent = "Digite um CEP válido (8 números).";
+        } else {
+          statusMsg.textContent = "";
+        }
+        return;
+      }
+
+      statusMsg.textContent = "Buscando informações...";
+
+      try {
+        const resposta = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`);
+        if (!resposta.ok) throw new Error("Erro na API do ViaCEP");
+
+        const dados = await resposta.json();
+        if (dados.erro) {
+          limparEndereco();
+          statusMsg.textContent = "CEP não encontrado.";
+          return;
+        }
+
+        ruaInput.value = dados.logradouro;
+        bairroInput.value = dados.bairro;
+        cidadeInput.value = dados.localidade;
+        estadoInput.value = dados.uf;
+        statusMsg.textContent = "Endereço preenchido automaticamente ✔️";
+      } catch (erro) {
+        console.error(erro);
+        limparEndereco();
+        statusMsg.textContent = "Erro ao buscar o CEP. Verifique sua conexão.";
+      }
+    }
+
+    cepInput.addEventListener("input", () => {
+      if (cepInput.value === "") limparEndereco();
+    });
+
+    cepInput.addEventListener("blur", () => buscarCEP(cepInput.value));
+
+    // Carregar cadastros salvos
+    function carregarCadastros() {
+      const cadastros = JSON.parse(localStorage.getItem("cadastros")) || [];
+      listaCadastros.innerHTML = cadastros.length
+        ? cadastros.map(c => `
+          <div class="cadastro-item">
+            <strong>${c.nome}</strong><br>
+            ${c.rua}, ${c.numero}, ${c.bairro}<br>
+            ${c.cidade} - ${c.estado}<br>
+            CEP: ${c.cep}<br>
+            ${c.imagem ? `<img src="${c.imagem}" alt="Imagem cadastrada" style="width:100px;">` : ""}
+          </div>`).join("")
+        : "<p style='text-align:center;color:#ccc;'>Nenhum cadastro ainda.</p>";
+    }
+
+    // Converter imagem em Base64
+    function converterImagemBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // Salvar cadastro
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      let imagemBase64 = "";
+      const file = imagemInput.files[0];
+      if (file) {
+        imagemBase64 = await converterImagemBase64(file);
+      }
+
+      const novoCadastro = {
+        nome: nomeInput.value,
+        cep: cepInput.value,
+        numero: numeroInput.value,
+        rua: ruaInput.value,
+        bairro: bairroInput.value,
+        cidade: cidadeInput.value,
+        estado: estadoInput.value,
+        imagem: imagemBase64
+      };
+
+      const cadastros = JSON.parse(localStorage.getItem("cadastros")) || [];
+      cadastros.push(novoCadastro);
+      localStorage.setItem("cadastros", JSON.stringify(cadastros));
+
+      statusMsg.textContent = "✅ Usuário cadastrado com sucesso!";
+      form.reset();
+      limparEndereco();
+      carregarCadastros();
+    });
+
+    // Alternar menu lateral
+    menuBtn.addEventListener("click", () => {
+      menuCadastros.classList.toggle("open");
+      carregarCadastros();
+    });
+
+    // Limpar cadastros
+    limparBtn.addEventListener("click", () => {
+      if (confirm("Tem certeza que deseja limpar todos os cadastros?")) {
+        localStorage.removeItem("cadastros");
+        carregarCadastros();
+      }
+    });
+
+    // Carregar cadastros ao iniciar
+    carregarCadastros();
+  </script>
+</body>
+</html>
